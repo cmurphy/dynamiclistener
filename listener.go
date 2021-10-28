@@ -342,6 +342,7 @@ func (l *listener) updateCert(cn ...string) error {
 }
 
 func (l *listener) loadCert(currentConn *closeWrapper) (*tls.Certificate, error) {
+	logrus.Infof("*** in loadCert ***")
 	l.RLock()
 	defer l.RUnlock()
 
@@ -374,13 +375,18 @@ func (l *listener) loadCert(currentConn *closeWrapper) (*tls.Certificate, error)
 	// cert has changed, close closeWrapper wrapped connections if this isn't the first load
 	if l.conns != nil && l.cert != nil {
 		l.connLock.Lock()
+		logrus.Infof("*** closing connections %+v ***", l.conns)
 		for _, conn := range l.conns {
 			// Don't close a connection that's in the middle of completing a TLS handshake
 			if !conn.ready {
+				logrus.Infof("*** skipping conn %+v", conn)
 				continue
 			}
 			_ = conn.close()
 		}
+		logrus.Infof("setting current conn ready")
+		logrus.Infof("currentConn: %+v", currentConn)
+		logrus.Infof("l.conns[id]: %+v", l.conns[currentConn.id])
 		l.conns[currentConn.id].ready = true
 		l.connLock.Unlock()
 	}
